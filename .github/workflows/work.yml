@@ -2,28 +2,56 @@ name: GitHub Actions maxi
 run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
 on: [push]
 jobs:
-  Explore-GitHub-Actions:
+  lint:
     runs-on: ubuntu-latest
-    steps:
+    steps:  
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-      - run: "pip install --quiet --upgrade --requirement requirements.txt"
-      
-      - run: |
+      - name: installation
+        run: "pip install --quiet --upgrade --requirement requirements.txt"
+      - name: lintage
+        run: |
           flake8 --ignore=E501,E231 *.py
           pylint --errors-only --disable=C0301 --disable=C0326 *.py
-      
-      - run: "pylint --errors-only --disable=C0301 --disable=C0326 *.py"
-      - run: "python -m unittest --verbose --failfast"
-      
-      - run: echo ""
 
-      - name: Chout out
-        uses: actions/checkout@v4
-      - name: List files in the repository
-        run: |
-          ls ${{ github.workspace }}
-      - run: echo "le status est ${{ job.status }}."
+  build:  # Nom du job
+      needs: [lint]  # Dépend du job `lint`
+      runs-on: ubuntu-latest  # S'exécute sur la dernière version d'Ubuntu
+      permissions:  # Permissions nécessaires
+        packages: write  # Autorisation d'écrire aux packages
 
+      # Étapes du job
+      steps:
+        - name: code checkout  # Récupère le code source
+          uses: actions/checkout@v4  # Utilise l'action GitHub pour le checkout
+
+        - name: setup Buildx  # Configure Docker Buildx
+          uses: docker/setup-buildx-action@v3  # Utilise l'action Buildx
+
+        - name: login to GitHub Package Registry  # Connexion à GitHub Container Registry
+          uses: docker/login-action@v3  # Utilise l'action de login Docker
+          with:  # Avec ces paramètres
+            registry: ghcr.io  # URL du registre
+            username: ${{ github.actor }}  # Nom d'utilisateur GitHub
+            password: ${{ secrets.GITHUB_TOKEN }}  # `GITHUB_TOKEN` pour l'authentification
+
+        - name: get metadata  # Récupère les métadonnées pour Docker
+          id: metadata  # ID pour cette étape
+          uses: docker/metadata-action@v5  # Utilise l'action de métadonnées
+          with:
+            images: ghcr.io/${{ github.repository }}/  # Utilise le nom dur repository
+            
+        - name: Get current date # get the date of the build
+          id: date
+          run: echo "::set-output name=date::$(date +'%Y-%m-%d--%M-%S')"
+
+        - name: build and push  # Construit et pousse l'image
+          uses: docker/build-push-action@v5  # Utilise l'action de build et push Docker
+          with:  # Avec ces paramètres
+            push: true  # Pousse l'image
+            tags: flask-docker:${{ steps.date.outputs.date }}  # Tags pour l'image
+            context: .  # Contexte pour la construction Docker
+            cache-from: type=gha  # Utilise le cache GitHub Actions
+            cache-to: type=gha,mode=max  # Enregistre le cache pour les utilisations futures
