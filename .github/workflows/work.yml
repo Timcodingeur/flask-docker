@@ -34,8 +34,8 @@ jobs:
           uses: docker/login-action@v3  # Utilise l'action de login Docker
           with:  # Avec ces paramètres
             registry: ghcr.io  # URL du registre
-            username: "dockerisateur"  # Nom d'utilisateur GitHub
-            password: ${{ secrets.DOCKER_TOKEN }}  # `GITHUB_TOKEN` pour l'authentification
+            username: ${{ github.actor }}  # Nom d'utilisateur GitHub
+            password: ${{ secrets.GITHUB_TOKEN }}  # `GITHUB_TOKEN` pour l'authentification
 
         - name: get metadata  # Récupère les métadonnées pour Docker
           id: metadata  # ID pour cette étape
@@ -51,7 +51,7 @@ jobs:
           uses: docker/build-push-action@v5  # Utilise l'action de build et push Docker
           with:  # Avec ces paramètres
             push: true  # Pousse l'image
-            tags: flask-docker:${{ steps.date.outputs.date }}  # Tags pour l'image
+            tags: docker.io/dockerisateur/flask-docker:${{ steps.date.outputs.date }}  # Tags pour l'image
             context: .  # Contexte pour la construction Docker
             cache-from: type=gha  # Utilise le cache GitHub Actions
             cache-to: type=gha,mode=max  # Enregistre le cache pour les utilisations futures
