@@ -10,16 +10,17 @@ jobs:
         with:
           python-version: '3.13'
 
-      - run: "pip install --quiet --upgrade --requirement requirements.txt"
-      - run: "flake8 --ignore=E501,E231 *.py"
+      - run: |
+          "pip install --quiet --upgrade --requirement requirements.txt"
+          "flake8 --ignore=E501,E231 *.py"
+      
       - run: "pylint --errors-only --disable=C0301 --disable=C0326 *.py"
       - run: "python -m unittest --verbose --failfast"
+      
       - run: echo ""
 
       - name: Chout out
         uses: actions/checkout@v4
-      - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
-      - run: echo "🖥️ The workflow is now ready to test your code on the runner."
       - name: List files in the repository
         run: |
           ls ${{ github.workspace }}
